@@ -4,8 +4,8 @@
 //! ranges and each response is validated. Any range failure falls back to a
 //! fresh single-stream transfer; partial range data is never published.
 
-use reqwest::blocking::{Client, Response};
-use reqwest::header::{ACCEPT_RANGES, CONTENT_LENGTH, CONTENT_RANGE, ETAG, LAST_MODIFIED, RANGE};
+use reqwest::blocking::Client;
+use reqwest::header::{ACCEPT_RANGES, CONTENT_LENGTH, CONTENT_RANGE, ETAG, IF_RANGE, LAST_MODIFIED, RANGE};
 use reqwest::StatusCode;
 use std::fs::{self, File, OpenOptions};
 use std::io::{self, Write};
@@ -88,10 +88,10 @@ pub fn download_to_path(
     let temp_path = sibling_path(destination, &format!(".{nonce}.download-part"));
 
     if let Some(info) = probe_result {
-        if info.supports_ranges && connections > 1 {
+        let validator = info.etag.as_ref().filter(|v| !v.trim_start().starts_with("W/"))\n                .or(info.last_modified.as_ref()).cloned();\n        if info.supports_ranges && connections > 1 && validator.is_some() {
             if let Some(size) = info.size.filter(|s| *s > 0) {
                 if let Ok(report) = download_parallel(
-                    Arc::clone(&client), url, &temp_path, size, connections, nonce
+                    Arc::clone(&client), url, &temp_path, size, connections, nonce, validator
                 ) {
                     publish_file(&temp_path, destination)?;
                     return Ok(report);
