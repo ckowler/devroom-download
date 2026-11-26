@@ -23,7 +23,8 @@
 - [x] Deterministic local HTTP Range integration tests (valid segments, unsupported ranges, rejected ranges)
 
 ## Android integration
-- [ ] Route actual download execution through Rust JNI worker/service (bridge exists; lifecycle integration remains)
+- [x] Coroutine adapter that invokes the blocking Rust JNI transfer off the main thread
+- [ ] Route user downloads through a durable Rust JNI worker/service (notifications, cancellation, lifecycle recovery remain)
 - [ ] Room persistence and startup reconciliation
 - [ ] User-Initiated Data Transfer integration on supported Android versions
 - [ ] WorkManager scheduling for deferrable work
