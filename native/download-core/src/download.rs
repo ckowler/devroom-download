@@ -362,4 +362,24 @@ mod tests {
         let count = 2usize.min(1usize).max(1);
         assert_eq!(count, 1);
     }
+
+    #[test]
+    fn publishes_new_file_over_existing_destination() {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!("devroom-publish-test-{nonce}"));
+        fs::create_dir_all(&root).unwrap();
+        let temp = root.join("partial.tmp");
+        let destination = root.join("result.bin");
+        fs::write(&temp, b"new payload").unwrap();
+        fs::write(&destination, b"old payload").unwrap();
+
+        publish_file(&temp, &destination).unwrap();
+
+        assert_eq!(fs::read(&destination).unwrap(), b"new payload");
+        assert!(!temp.exists());
+        fs::remove_dir_all(root).unwrap();
+    }
 }
