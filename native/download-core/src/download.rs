@@ -321,11 +321,20 @@ fn download_parallel(
 }
 
 fn publish_file(temp: &Path, destination: &Path) -> Result<(), DownloadError> {
-    if destination.exists() {
-        fs::remove_file(destination)?;
+    // On Android/Linux rename replaces an existing file atomically. Keep the
+    // remove-and-retry fallback for host platforms that reject replacement.
+    match fs::rename(temp, destination) {
+        Ok(()) => Ok(()),
+        Err(first_error) if destination.exists() => {
+            fs::remove_file(destination)?;
+            fs::rename(temp, destination).map_err(DownloadError::Io)
+        }
+        Err(error) => Err(DownloadError::Io(if error.kind() == first_error.kind() {
+            error
+        } else {
+            first_error
+        })),
     }
-    fs::rename(temp, destination)?;
-    Ok(())
 }
 
 fn sibling_path(path: &Path, suffix: &str) -> PathBuf {
