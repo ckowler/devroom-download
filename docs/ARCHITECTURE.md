@@ -8,7 +8,7 @@
 - Optional engines: media, BitTorrent, and archive adapters behind stable contracts.
 
 ## Boundaries
-Rust must not depend on Android UI or Room. It exposes a small versioned API. Kotlin owns Android lifecycle, permissions, notifications, and durable app metadata. A bridge translates typed commands and events.
+Rust must not depend on Android UI or Room. It exposes a small versioned API. Kotlin owns Android lifecycle, permissions, notifications, and durable app metadata. The JNI transfer call is blocking and must run on a worker thread; a Kotlin worker/service must own cancellation, notifications, lifecycle recovery, and persistence before production UI routing is enabled.
 
 Room is the user-visible source of truth. Native execution state is checkpointed through an explicit persistence contract. Startup reconciliation compares task IDs, validators, partial-file metadata, and completed byte ranges.
 
