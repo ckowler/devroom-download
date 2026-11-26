@@ -6,6 +6,7 @@
 - [x] Direct HTTP(S) URL intake through Android DownloadManager
 - [x] Live progress display, task cancellation, and queue restoration after app restart
 - [x] Open completed downloads through Android content URIs
+- [x] Share completed files through Android Sharesheet
 - [x] Translate common DownloadManager failure codes into readable messages
 - [x] Retry failed platform downloads using the original source URL
 - [x] Paste HTTP(S) links from the clipboard
