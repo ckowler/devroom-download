@@ -45,6 +45,17 @@ fn respond(mut stream: TcpStream, range_enabled: bool, range_response_valid: boo
         line.strip_prefix("Range: bytes=")
             .or_else(|| line.strip_prefix("range: bytes="))
     }) {
+        let has_if_range = request
+            .lines()
+            .any(|line| line.to_ascii_lowercase().starts_with("if-range:"));
+        if !has_if_range {
+            write!(
+                stream,
+                "HTTP/1.1 412 Precondition Failed\\r\\nContent-Length: 0\\r\\nConnection: close\\r\\n\\r\\n"
+            )
+            .unwrap();
+            return;
+        }
         let (start, end) = value.trim().split_once('-').unwrap();
         let start: usize = start.parse().unwrap();
         let end: usize = end.parse().unwrap();
