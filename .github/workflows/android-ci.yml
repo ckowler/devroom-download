@@ -23,7 +23,16 @@ jobs:
         with:
           gradle-version: "8.13"
       - name: Install Android SDK packages
-        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0" "ndk;27.2.12479018"
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk --locked
+      - name: Build Rust core for Android ARM64
+        run: |
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.2.12479018" >> "$GITHUB_ENV"
+          cargo ndk -t arm64-v8a -o android/app/src/main/jniLibs build --manifest-path native/download-core/Cargo.toml --release
       - name: Assemble debug APK
         run: gradle :android:app:assembleDebug
       - name: Upload debug APK
