@@ -34,7 +34,8 @@ jobs:
       - name: Build Rust core for Android ARM64
         working-directory: native
         run: |
-          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.2.12479018" >> "$GITHUB_ENV"
+          export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/27.2.12479018"
+          echo "ANDROID_NDK_HOME=$ANDROID_NDK_HOME" >> "$GITHUB_ENV"
           cargo ndk -t arm64-v8a -o ../android/app/src/main/jniLibs build --workspace --release
       - name: Assemble debug APK
         run: gradle :android:app:assembleDebug
