@@ -2,6 +2,7 @@ package com.devroom.download
 
 import android.app.DownloadManager
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
@@ -44,7 +45,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
-import java.net.URL
 import java.util.Locale
 
 private val Graphite = Color(0xFF101411)
@@ -67,7 +67,7 @@ class MainActivity : ComponentActivity() {
             MaterialTheme(colorScheme = darkColorScheme(
                 primary = NeonGreen, background = Graphite, surface = Panel,
                 onPrimary = Graphite, onBackground = Color.White, onSurface = Color.White
-            )) { DownloadHome() }
+            )) { DownloadHome(sharedLink = sharedLink) }
         }
     }
 }
