@@ -88,10 +88,8 @@ fn fixture(
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let address = listener.local_addr().unwrap();
     let handle = thread::spawn(move || {
-        for stream in listener.incoming().take(requests) {
-            if let Ok(stream) = stream {
-                respond(stream, range_enabled, range_response_valid);
-            }
+        for stream in listener.incoming().take(requests).flatten() {
+            respond(stream, range_enabled, range_response_valid);
         }
     });
     (format!("http://{address}/fixture.bin"), handle)
