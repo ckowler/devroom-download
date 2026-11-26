@@ -8,3 +8,7 @@ description = "Local-first download engine for DEVROOM DOWNLOAD"
 [lib]
 name = "devroom_download_core"
 crate-type = ["rlib", "cdylib"]
+
+[dependencies]
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "rustls-tls", "stream"] }
+thiserror = "2"
