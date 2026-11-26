@@ -63,7 +63,8 @@ data class DownloadItem(
     val status: String = "В очереди",
     val downloaded: Long = 0L,
     val total: Long = -1L,
-    val reason: String? = null
+    val reason: String? = null,
+    val url: String? = null
 )
 
 class MainActivity : ComponentActivity() {
@@ -127,7 +128,7 @@ private fun DownloadHome(sharedLink: String?) {
                 .setAllowedOverRoaming(false)
                 .setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, fileName)
             val id = manager.enqueue(request)
-            downloads.add(0, DownloadItem(id = id, title = fileName))
+            downloads.add(0, DownloadItem(id = id, title = fileName, url = raw))
             urlText = ""
             message = "Загрузка добавлена."
         }.onFailure { message = "Не удалось добавить загрузку: ${it.localizedMessage ?: "ошибка"}" }
@@ -148,6 +149,7 @@ private fun DownloadHome(sharedLink: String?) {
             val bytesColumn = cursor.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)
             val totalColumn = cursor.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)
             val reasonColumn = cursor.getColumnIndex(DownloadManager.COLUMN_REASON)
+            val urlColumn = cursor.getColumnIndex(DownloadManager.COLUMN_URI)
             while (cursor.moveToNext()) {
                 val id = cursor.getLong(idColumn)
                 val title = if (titleColumn >= 0) cursor.getString(titleColumn) ?: "Загрузка" else "Загрузка"
@@ -155,7 +157,8 @@ private fun DownloadHome(sharedLink: String?) {
                 val bytes = if (bytesColumn >= 0) cursor.getLong(bytesColumn) else 0L
                 val total = if (totalColumn >= 0) cursor.getLong(totalColumn) else -1L
                 val reason = if (reasonColumn >= 0 && statusCode == DownloadManager.STATUS_FAILED) reasonLabel(cursor.getInt(reasonColumn)) else null
-                downloads.add(DownloadItem(id, title, statusLabel(statusCode), bytes, total, reason))
+                val url = if (urlColumn >= 0) cursor.getString(urlColumn) else null
+                downloads.add(DownloadItem(id, title, statusLabel(statusCode), bytes, total, reason, url))
             }
         }
         while (true) {
@@ -168,11 +171,13 @@ private fun DownloadHome(sharedLink: String?) {
                         val bytesIndex = cursor.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)
                         val totalIndex = cursor.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)
                         val reasonIndex = cursor.getColumnIndex(DownloadManager.COLUMN_REASON)
+                        val urlIndex = cursor.getColumnIndex(DownloadManager.COLUMN_URI)
                         val statusCode = if (statusIndex >= 0) cursor.getInt(statusIndex) else -1
                         val downloaded = if (bytesIndex >= 0) cursor.getLong(bytesIndex) else 0L
                         val total = if (totalIndex >= 0) cursor.getLong(totalIndex) else -1L
                         val reason = if (reasonIndex >= 0 && statusCode == DownloadManager.STATUS_FAILED) reasonLabel(cursor.getInt(reasonIndex)) else null
-                        downloads[index] = current.copy(status = statusLabel(statusCode), downloaded = downloaded, total = total, reason = reason)
+                        val url = if (urlIndex >= 0) cursor.getString(urlIndex) else current.url
+                        downloads[index] = current.copy(status = statusLabel(statusCode), downloaded = downloaded, total = total, reason = reason, url = url)
                     }
                 }
             }
@@ -268,6 +273,16 @@ private fun DownloadHome(sharedLink: String?) {
                                 runCatching { context.startActivity(viewIntent) }
                                     .onFailure { message = "Нет приложения для открытия этого типа файла." }
                             }
+                        }, onRetry = { id ->
+                            val previous = downloads.firstOrNull { it.id == id }
+                            val retryUrl = previous?.url
+                            if (retryUrl.isNullOrBlank()) {
+                                message = "Исходная ссылка недоступна для повтора."
+                            } else {
+                                manager.remove(id)
+                                downloads.removeAll { it.id == id }
+                                enqueueDownload(retryUrl)
+                            }
                         }, onCancel = { id ->
                             manager.remove(id)
                             downloads.removeAll { it.id == id }
@@ -283,7 +298,12 @@ private fun DownloadHome(sharedLink: String?) {
 }
 
 @Composable
-private fun DownloadCard(item: DownloadItem, onOpen: (Long) -> Unit, onCancel: (Long) -> Unit) {
+private fun DownloadCard(
+    item: DownloadItem,
+    onOpen: (Long) -> Unit,
+    onRetry: (Long) -> Unit,
+    onCancel: (Long) -> Unit
+) {
     Card(colors = CardDefaults.cardColors(containerColor = Panel), shape = RoundedCornerShape(16.dp)) {
         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(item.title, color = Color.White, fontWeight = FontWeight.SemiBold, maxLines = 2)
@@ -301,7 +321,10 @@ private fun DownloadCard(item: DownloadItem, onOpen: (Long) -> Unit, onCancel: (
                     color = Muted, fontSize = 11.sp)
                 when (item.status) {
                     "Завершено" -> Button(onClick = { onOpen(item.id) }) { Text("Открыть") }
-                    "Ошибка загрузки" -> Button(onClick = { onCancel(item.id) }) { Text("Убрать") }
+                    "Ошибка загрузки" -> Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Button(onClick = { onRetry(item.id) }) { Text("Повторить") }
+                        TextButton(onClick = { onCancel(item.id) }) { Text("Убрать") }
+                    }
                     else -> Button(onClick = { onCancel(item.id) }) { Text("Отменить") }
                 }
             }
