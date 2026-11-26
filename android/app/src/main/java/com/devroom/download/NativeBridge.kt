@@ -10,4 +10,7 @@ object NativeBridge {
     }
 
     external fun nativeHealthCheck(): String
+
+    /** Blocking call: invoke only from Dispatchers.IO or another worker thread. */
+    external fun nativeDownload(url: String, destination: String, connections: Int): String
 }
