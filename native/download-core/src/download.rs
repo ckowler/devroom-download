@@ -88,7 +88,9 @@ pub fn download_to_path(
     let temp_path = sibling_path(destination, &format!(".{nonce}.download-part"));
 
     if let Some(info) = probe_result {
-        let validator = info.etag.as_ref().filter(|v| !v.trim_start().starts_with("W/"))\n                .or(info.last_modified.as_ref()).cloned();\n        if info.supports_ranges && connections > 1 && validator.is_some() {
+        let validator = info.etag.as_ref().filter(|v| !v.trim_start().starts_with("W/"))
+                .or(info.last_modified.as_ref()).cloned();
+        if info.supports_ranges && connections > 1 && validator.is_some() {
             if let Some(size) = info.size.filter(|s| *s > 0) {
                 if let Ok(report) = download_parallel(
                     Arc::clone(&client), url, &temp_path, size, connections, nonce, validator
