@@ -19,7 +19,7 @@ Free, local-first native Android download manager by DEVROOM.
 
 ## Current implementation
 
-- Android app accepts a direct HTTP(S) URL, queues it through Android DownloadManager, shows live progress, restores this app's queued tasks after restart, and supports cancellation.
+- Android app accepts a direct HTTP(S) URL, queues it through Android DownloadManager, shows live progress, restores this app's queued tasks after restart, supports cancellation, opens completed files with the device's registered apps, and displays a readable reason for failed transfers.
 - Android Sharesheet and HTTP(S) VIEW intents can prefill a shared link. Cleartext HTTP downloads require an explicit warning confirmation; HTTPS is preferred.
 - Rust core contains an independent HTTP(S) transport with validated byte-range workers, If-Range validators, temporary segment files, and single-stream fallback. Local HTTP integration tests cover successful segmented assembly, required If-Range validators, servers without range support, and servers that ignore range requests.
 - The ARM64 JNI library exposes a health check and a blocking native HTTP download entry point. A Kotlin coroutine adapter runs it off the main thread; durable background scheduling, cancellation, notifications, and UI routing are still pending.
