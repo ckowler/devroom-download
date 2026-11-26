@@ -196,6 +196,11 @@ fn download_single(client: &Client, url: &str, temp: &Path) -> Result<u64, Downl
     Ok(bytes)
 }
 
+fn segment_count(size: u64, requested_connections: usize) -> usize {
+    let safe_size = usize::try_from(size).unwrap_or(usize::MAX);
+    requested_connections.clamp(1, 8).min(safe_size).max(1)
+}
+
 fn download_parallel(
     client: Arc<Client>,
     url: &str,
@@ -205,8 +210,7 @@ fn download_parallel(
     nonce: u128,
     validator: Option<String>,
 ) -> Result<DownloadReport, DownloadError> {
-    let safe_size = usize::try_from(size).unwrap_or(usize::MAX);
-    let count = connections.min(safe_size).max(1);
+    let count = segment_count(size, connections);
     let chunk = size / count as u64;
     let mut jobs = Vec::with_capacity(count);
 
@@ -358,9 +362,10 @@ mod tests {
     }
 
     #[test]
-    fn segment_count_never_exceeds_file_size() {
-        let count = 2usize.min(1usize).max(1);
-        assert_eq!(count, 1);
+    fn segment_count_respects_file_size_and_connection_limit() {
+        assert_eq!(segment_count(1, 8), 1);
+        assert_eq!(segment_count(10, 3), 3);
+        assert_eq!(segment_count(100, 99), 8);
     }
 
     #[test]
