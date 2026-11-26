@@ -112,7 +112,10 @@ pub fn download_to_path(
                     nonce,
                     validator,
                 ) {
-                    publish_file(&temp_path, destination)?;
+                    if let Err(error) = publish_file(&temp_path, destination) {
+                        let _ = fs::remove_file(&temp_path);
+                        return Err(error);
+                    }
                     return Ok(report);
                 }
             }
@@ -122,7 +125,10 @@ pub fn download_to_path(
     let result = download_single(&client, url, &temp_path);
     match result {
         Ok(bytes) => {
-            publish_file(&temp_path, destination)?;
+            if let Err(error) = publish_file(&temp_path, destination) {
+                let _ = fs::remove_file(&temp_path);
+                return Err(error);
+            }
             Ok(DownloadReport {
                 bytes_written: bytes,
                 used_parallel_ranges: false,
