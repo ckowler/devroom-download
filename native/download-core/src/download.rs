@@ -175,8 +175,10 @@ fn download_parallel(
     size: u64,
     connections: usize,
     nonce: u128,
+    validator: Option<String>,
 ) -> Result<DownloadReport, DownloadError> {
-    let count = connections.min(size as usize).max(1);
+    let safe_size = usize::try_from(size).unwrap_or(usize::MAX);
+    let count = connections.min(safe_size).max(1);
     let chunk = size / count as u64;
     let mut jobs = Vec::with_capacity(count);
 
@@ -194,19 +196,20 @@ fn download_parallel(
         let segment = segment.clone();
         let start = *start;
         let end = *end;
+        let validator = validator.clone();
         handles.push(thread::spawn(move || -> Result<u64, DownloadError> {
-            let mut response = client.get(&url)
-                .header(RANGE, format!("bytes={start}-{end}"))
-                .send()?;
+            let mut request = client.get(&url).header(RANGE, format!("bytes={start}-{end}"));
+            if let Some(value) = validator { request = request.header(IF_RANGE, value); }
+            let mut response = request.send()?;
             if response.status() != StatusCode::PARTIAL_CONTENT {
                 return Err(DownloadError::InvalidResponse(format!(
                     "range {start}-{end} returned HTTP {}", response.status()
                 )));
             }
-            let expected = format!("bytes {start}-{end}/");
+            let expected = format!("bytes {start}-{end}/{size}");
             let actual = response.headers().get(CONTENT_RANGE)
                 .and_then(|v| v.to_str().ok()).unwrap_or("");
-            if !actual.starts_with(&expected) {
+            if actual != expected {
                 return Err(DownloadError::InvalidResponse(
                     format!("unexpected Content-Range: {actual}")
                 ));
