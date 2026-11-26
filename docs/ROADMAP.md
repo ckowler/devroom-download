@@ -7,6 +7,7 @@
 - [x] Live progress display, task cancellation, and queue restoration after app restart
 - [x] Open completed downloads through Android content URIs
 - [x] Translate common DownloadManager failure codes into readable messages
+- [x] Retry failed platform downloads using the original source URL
 - [x] Android Sharesheet and HTTP(S) VIEW link intake
 - [x] Explicit confirmation before starting unencrypted HTTP downloads
 - [x] Rust workspace and native HTTP(S) engine
