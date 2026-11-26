@@ -8,7 +8,9 @@ use std::thread;
 const BODY: &[u8] = b"DEVROOM DOWNLOAD integration test payload: segmented HTTP transfer.";
 
 fn read_request(stream: &mut TcpStream) -> String {
-    stream.set_read_timeout(Some(std::time::Duration::from_secs(5))).unwrap();
+    stream
+        .set_read_timeout(Some(std::time::Duration::from_secs(5)))
+        .unwrap();
     let mut bytes = Vec::new();
     let mut chunk = [0u8; 1024];
     loop {
@@ -53,7 +55,8 @@ fn respond(mut stream: TcpStream, range_enabled: bool) {
             start,
             end,
             BODY.len()
-        ).unwrap();
+        )
+        .unwrap();
         stream.write_all(slice).unwrap();
     } else {
         write!(
