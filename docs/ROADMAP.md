@@ -8,6 +8,8 @@
 - [x] Open completed downloads through Android content URIs
 - [x] Translate common DownloadManager failure codes into readable messages
 - [x] Retry failed platform downloads using the original source URL
+- [x] Paste HTTP(S) links from the clipboard
+- [x] Remove completed downloads from the visible queue
 - [x] Android Sharesheet and HTTP(S) VIEW link intake
 - [x] Explicit confirmation before starting unencrypted HTTP downloads
 - [x] Rust workspace and native HTTP(S) engine
