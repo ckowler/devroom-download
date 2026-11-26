@@ -26,7 +26,7 @@ fn read_request(stream: &mut TcpStream) -> String {
     String::from_utf8_lossy(&bytes).into_owned()
 }
 
-fn respond(mut stream: TcpStream, range_enabled: bool) {
+fn respond(mut stream: TcpStream, range_enabled: bool, range_response_valid: bool) {
     let request = read_request(&mut stream);
     let first = request.lines().next().unwrap_or_default();
     if first.starts_with("HEAD ") {
@@ -48,6 +48,16 @@ fn respond(mut stream: TcpStream, range_enabled: bool) {
         let (start, end) = value.trim().split_once('-').unwrap();
         let start: usize = start.parse().unwrap();
         let end: usize = end.parse().unwrap();
+        if !range_response_valid {
+            write!(
+                stream,
+                "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                BODY.len()
+            )
+            .unwrap();
+            stream.write_all(BODY).unwrap();
+            return;
+        }
         let slice = &BODY[start..=end];
         write!(
             stream,
@@ -70,13 +80,17 @@ fn respond(mut stream: TcpStream, range_enabled: bool) {
     }
 }
 
-fn fixture(range_enabled: bool, requests: usize) -> (String, thread::JoinHandle<()>) {
+fn fixture(
+    range_enabled: bool,
+    range_response_valid: bool,
+    requests: usize,
+) -> (String, thread::JoinHandle<()>) {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let address = listener.local_addr().unwrap();
     let handle = thread::spawn(move || {
         for stream in listener.incoming().take(requests) {
             if let Ok(stream) = stream {
-                respond(stream, range_enabled);
+                respond(stream, range_enabled, range_response_valid);
             }
         }
     });
@@ -96,7 +110,7 @@ fn destination(label: &str) -> PathBuf {
 
 #[test]
 fn downloads_and_assembles_validated_parallel_ranges() {
-    let (url, server) = fixture(true, 4); // HEAD + three workers
+    let (url, server) = fixture(true, true, 4); // HEAD + three workers
     let path = destination("ranges");
     let report: DownloadReport = download_to_path(&url, &path, 3).unwrap();
 
@@ -109,9 +123,23 @@ fn downloads_and_assembles_validated_parallel_ranges() {
 
 #[test]
 fn falls_back_to_single_stream_when_ranges_are_not_advertised() {
-    let (url, server) = fixture(false, 2); // HEAD + one GET
+    let (url, server) = fixture(false, true, 2); // HEAD + one GET
     let path = destination("fallback");
     let report = download_to_path(&url, &path, 4).unwrap();
+
+    server.join().unwrap();
+    assert!(!report.used_parallel_ranges);
+    assert_eq!(report.connections, 1);
+    assert_eq!(fs::read(&path).unwrap(), BODY);
+    fs::remove_file(path).unwrap();
+}
+
+
+#[test]
+fn falls_back_when_server_ignores_range_requests() {
+    let (url, server) = fixture(true, false, 5); // HEAD + three ranges + fallback GET
+    let path = destination("range-rejected");
+    let report = download_to_path(&url, &path, 3).unwrap();
 
     server.join().unwrap();
     assert!(!report.used_parallel_ranges);
