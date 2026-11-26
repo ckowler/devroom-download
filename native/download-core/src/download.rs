@@ -5,7 +5,9 @@
 //! fresh single-stream transfer; partial range data is never published.
 
 use reqwest::blocking::Client;
-use reqwest::header::{ACCEPT_RANGES, CONTENT_LENGTH, CONTENT_RANGE, ETAG, IF_RANGE, LAST_MODIFIED, RANGE};
+use reqwest::header::{
+    ACCEPT_RANGES, CONTENT_LENGTH, CONTENT_RANGE, ETAG, IF_RANGE, LAST_MODIFIED, RANGE,
+};
 use reqwest::StatusCode;
 use std::fs::{self, File, OpenOptions};
 use std::io::{self, Write};
@@ -88,8 +90,12 @@ pub fn download_to_path(
     let temp_path = sibling_path(destination, &format!(".{nonce}.download-part"));
 
     if let Some(info) = probe_result {
-        let validator = info.etag.as_ref().filter(|v| !v.trim_start().starts_with("W/"))
-                .or(info.last_modified.as_ref()).cloned();
+        let validator = info
+            .etag
+            .as_ref()
+            .filter(|v| !v.trim_start().starts_with("W/"))
+            .or(info.last_modified.as_ref())
+            .cloned();
         if info.supports_ranges && connections > 1 && validator.is_some() {
             if let Some(size) = info.size.filter(|s| *s > 0) {
                 if let Ok(report) = download_parallel(
@@ -199,7 +205,9 @@ fn download_parallel(
         let validator = validator.clone();
         handles.push(thread::spawn(move || -> Result<u64, DownloadError> {
             let mut request = client.get(&url).header(RANGE, format!("bytes={start}-{end}"));
-            if let Some(value) = validator { request = request.header(IF_RANGE, value); }
+            if let Some(value) = validator {
+                request = request.header(IF_RANGE, value);
+            }
             let mut response = request.send()?;
             if response.status() != StatusCode::PARTIAL_CONTENT {
                 return Err(DownloadError::InvalidResponse(format!(
@@ -236,12 +244,18 @@ fn download_parallel(
     }
 
     if failed || total != size {
-        for (_, _, path) in &jobs { let _ = fs::remove_file(path); }
+        for (_, _, path) in &jobs {
+            let _ = fs::remove_file(path);
+        }
         return Err(DownloadError::InvalidResponse("one or more range workers failed".into()));
     }
 
     let assembly = (|| -> Result<(), DownloadError> {
-        let mut output = OpenOptions::new().create(true).write(true).truncate(true).open(temp)?;
+        let mut output = OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open(temp)?;
         for (_, _, path) in &jobs {
             let mut part = File::open(path)?;
             io::copy(&mut part, &mut output)?;
@@ -251,13 +265,17 @@ fn download_parallel(
         Ok(())
     })();
 
-    for (_, _, path) in &jobs { let _ = fs::remove_file(path); }
+    for (_, _, path) in &jobs {
+        let _ = fs::remove_file(path);
+    }
     assembly?;
 
     let actual_size = fs::metadata(temp)?.len();
     if actual_size != size {
         let _ = fs::remove_file(temp);
-        return Err(DownloadError::InvalidResponse("assembled file size mismatch".into()));
+        return Err(DownloadError::InvalidResponse(
+            "assembled file size mismatch".into(),
+        ));
     }
 
     Ok(DownloadReport {
@@ -280,11 +298,6 @@ fn sibling_path(path: &Path, suffix: &str) -> PathBuf {
     path.with_file_name(format!("{name}{suffix}"))
 }
 
-#[allow(dead_code)]
-fn _content_range_parser_example(response: &Response) -> Option<&str> {
-    response.headers().get(CONTENT_RANGE).and_then(|v| v.to_str().ok())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -305,7 +318,7 @@ mod tests {
 
     #[test]
     fn segment_count_never_exceeds_file_size() {
-        let count = 2usize.min(1usize as usize).max(1);
+        let count = 2usize.min(1usize).max(1);
         assert_eq!(count, 1);
     }
 }
