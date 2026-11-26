@@ -64,7 +64,8 @@ fn respond(mut stream: TcpStream, range_enabled: bool) {
             stream,
             "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
             BODY.len()
-        ).unwrap();
+        )
+        .unwrap();
         stream.write_all(BODY).unwrap();
     }
 }
