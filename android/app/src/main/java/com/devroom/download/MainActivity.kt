@@ -111,6 +111,7 @@ private fun DownloadHome(sharedLink: String?) {
     var urlText by remember { mutableStateOf("") }
     var message by remember { mutableStateOf("Вставьте прямую ссылку на файл.") }
     var pendingHttpUrl by remember { mutableStateOf<String?>(null) }
+    var confirmClearCompleted by remember { mutableStateOf(false) }
     val downloads = remember { mutableStateListOf<DownloadItem>() }
 
     fun enqueueDownload(raw: String) {
@@ -249,6 +250,28 @@ private fun DownloadHome(sharedLink: String?) {
                 }
             }
 
+            if (confirmClearCompleted) {
+                AlertDialog(
+                    onDismissRequest = { confirmClearCompleted = false },
+                    title = { Text("Удалить завершённые файлы?") },
+                    text = { Text("Это удалит выбранные завершённые загрузки из списка Android Download Manager вместе с загруженными файлами. Действие нельзя отменить.") },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            val completedIds = downloads.filter { it.status == "Завершено" }.map { it.id }
+                            if (completedIds.isNotEmpty()) {
+                                manager.remove(*completedIds.toLongArray())
+                                downloads.removeAll { it.id in completedIds }
+                                message = "Завершённые файлы удалены."
+                            }
+                            confirmClearCompleted = false
+                        }) { Text("Удалить") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { confirmClearCompleted = false }) { Text("Отмена") }
+                    }
+                )
+            }
+
             pendingHttpUrl?.let { insecureUrl ->
                 AlertDialog(
                     onDismissRequest = { pendingHttpUrl = null },
@@ -276,14 +299,7 @@ private fun DownloadHome(sharedLink: String?) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("Загрузки", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 if (downloads.any { it.status == "Завершено" }) {
-                    TextButton(onClick = {
-                        val completedIds = downloads.filter { it.status == "Завершено" }.map { it.id }
-                        if (completedIds.isNotEmpty()) {
-                            manager.remove(*completedIds.toLongArray())
-                            downloads.removeAll { it.id in completedIds }
-                            message = "Завершённые загрузки очищены."
-                        }
-                    }) { Text("Очистить завершённые") }
+                    TextButton(onClick = { confirmClearCompleted = true }) { Text("Удалить завершённые") }
                 }
             }
             if (downloads.isEmpty()) {
