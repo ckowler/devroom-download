@@ -266,7 +266,7 @@ private fun MetricCard(label: String, value: String, modifier: Modifier = Modifi
 private fun safeFileName(input: String): String {
     val cleaned = input.substringAfterLast('/').substringAfterLast('\\')
         .replace(Regex("[^A-Za-z0-9._ -]"), "_")
-        .trim().take(120)
+        .trim().trim('.', ' ').take(120)
     return cleaned.ifBlank { "download.bin" }
 }
 
