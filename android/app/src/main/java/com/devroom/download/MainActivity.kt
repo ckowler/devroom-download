@@ -95,7 +95,10 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun DownloadHome(sharedLink: String?) {
     val context = LocalContext.current
-    val nativeStatus = remember { NativeBridge.nativeHealthCheck() }
+    val nativeStatus = remember {
+        runCatching { NativeBridge.nativeHealthCheck() }
+            .getOrElse { "native core unavailable" }
+    }
     val manager = remember { context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager }
     var urlText by remember { mutableStateOf("") }
     var message by remember { mutableStateOf("Вставьте прямую ссылку на файл.") }
