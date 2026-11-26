@@ -1,9 +1,13 @@
-//! DEVROOM DOWNLOAD native core foundation.
+//! DEVROOM DOWNLOAD native core.
+pub mod download;
+
 pub const CORE_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub fn health_check() -> &'static str {
     "devroom-download-core:ok"
 }
+
+pub use download::{download_to_path, probe, DownloadError, DownloadReport, Probe};
 
 #[cfg(test)]
 mod tests {
