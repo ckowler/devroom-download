@@ -6,6 +6,7 @@
 - [x] Direct HTTP(S) URL intake through Android DownloadManager
 - [x] Live progress display, task cancellation, and queue restoration after app restart
 - [x] Android Sharesheet and HTTP(S) VIEW link intake
+- [x] Explicit confirmation before starting unencrypted HTTP downloads
 - [x] Rust workspace and native HTTP(S) engine
 - [x] Validated segmented Range requests with If-Range validators and single-stream fallback
 - [x] ARM64 JNI library with health-check and native transfer entry points
