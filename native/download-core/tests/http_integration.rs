@@ -134,7 +134,6 @@ fn falls_back_to_single_stream_when_ranges_are_not_advertised() {
     fs::remove_file(path).unwrap();
 }
 
-
 #[test]
 fn falls_back_when_server_ignores_range_requests() {
     let (url, server) = fixture(true, false, 5); // HEAD + three ranges + fallback GET
