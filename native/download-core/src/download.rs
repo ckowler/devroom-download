@@ -325,15 +325,12 @@ fn publish_file(temp: &Path, destination: &Path) -> Result<(), DownloadError> {
     // remove-and-retry fallback for host platforms that reject replacement.
     match fs::rename(temp, destination) {
         Ok(()) => Ok(()),
-        Err(first_error) if destination.exists() => {
+        Err(_) if destination.exists() => {
             fs::remove_file(destination)?;
-            fs::rename(temp, destination).map_err(DownloadError::Io)
+            fs::rename(temp, destination)?;
+            Ok(())
         }
-        Err(error) => Err(DownloadError::Io(if error.kind() == first_error.kind() {
-            error
-        } else {
-            first_error
-        })),
+        Err(error) => Err(DownloadError::Io(error)),
     }
 }
 
