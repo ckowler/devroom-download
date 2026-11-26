@@ -200,7 +200,7 @@ private fun DownloadHome(sharedLink: String?) {
                         onClick = {
                             val raw = urlText.trim()
                             val parsed = runCatching { Uri.parse(raw) }.getOrNull()
-                            if (parsed?.scheme.equals("http", ignoreCase = true)) {
+                            if (parsed != null && parsed.scheme.equals("http", ignoreCase = true) && !parsed.host.isNullOrBlank()) {
                                 pendingHttpUrl = raw
                             } else {
                                 enqueueDownload(raw)
@@ -220,7 +220,7 @@ private fun DownloadHome(sharedLink: String?) {
                     onDismissRequest = { pendingHttpUrl = null },
                     title = { Text("Незащищённое соединение") },
                     text = {
-                        Text("Ссылка использует HTTP без шифрования. Содержимое и адрес загрузки могут быть видны в сети. Продолжить загрузку?\\n\\n$insecureUrl")
+                        Text("Ссылка использует HTTP без шифрования. Содержимое и адрес загрузки могут быть видны в сети. Продолжить загрузку?\n\n$insecureUrl")
                     },
                     confirmButton = {
                         TextButton(onClick = {
