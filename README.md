@@ -7,7 +7,7 @@ Free, local-first native Android download manager by DEVROOM.
 ## Principles
 - No commercial APIs, mandatory paid services, advertising, account, or hosted backend.
 - Kotlin + Jetpack Compose Android application with a Rust download core.
-- Local persistence and user-controlled file destinations.
+- Local-first operation; current Android downloads use the app-specific Downloads directory, with a public destination picker planned.
 - Safe HTTP range downloads, validator-aware resume, retries, and integrity checks.
 - Optional media, torrent, and archive adapters with independent license reviews.
 
