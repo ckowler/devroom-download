@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -29,6 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -102,7 +104,30 @@ private fun DownloadHome(sharedLink: String?) {
     val manager = remember { context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager }
     var urlText by remember { mutableStateOf("") }
     var message by remember { mutableStateOf("Вставьте прямую ссылку на файл.") }
+    var pendingHttpUrl by remember { mutableStateOf<String?>(null) }
     val downloads = remember { mutableStateListOf<DownloadItem>() }
+
+    fun enqueueDownload(raw: String) {
+        val parsed = runCatching { Uri.parse(raw) }.getOrNull()
+        if (parsed == null || parsed.scheme?.lowercase(Locale.ROOT) !in listOf("http", "https") || parsed.host.isNullOrBlank()) {
+            message = "Укажите корректную HTTP или HTTPS ссылку."
+            return
+        }
+        runCatching {
+            val fileName = safeFileName(parsed.lastPathSegment ?: "download")
+            val request = DownloadManager.Request(parsed)
+                .setTitle(fileName)
+                .setDescription("DEVROOM DOWNLOAD")
+                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                .setAllowedOverMetered(true)
+                .setAllowedOverRoaming(false)
+                .setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, fileName)
+            val id = manager.enqueue(request)
+            downloads.add(0, DownloadItem(id = id, title = fileName))
+            urlText = ""
+            message = "Загрузка добавлена."
+        }.onFailure { message = "Не удалось добавить загрузку: ${it.localizedMessage ?: "ошибка"}" }
+    }
 
     LaunchedEffect(sharedLink) {
         if (!sharedLink.isNullOrBlank()) {
@@ -175,23 +200,10 @@ private fun DownloadHome(sharedLink: String?) {
                         onClick = {
                             val raw = urlText.trim()
                             val parsed = runCatching { Uri.parse(raw) }.getOrNull()
-                            if (parsed == null || parsed.scheme?.lowercase(Locale.ROOT) !in listOf("http", "https") || parsed.host.isNullOrBlank()) {
-                                message = "Укажите корректную HTTP или HTTPS ссылку."
+                            if (parsed?.scheme.equals("http", ignoreCase = true)) {
+                                pendingHttpUrl = raw
                             } else {
-                                runCatching {
-                                    val fileName = safeFileName(parsed.lastPathSegment ?: "download")
-                                    val request = DownloadManager.Request(parsed)
-                                        .setTitle(fileName)
-                                        .setDescription("DEVROOM DOWNLOAD")
-                                        .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                                        .setAllowedOverMetered(true)
-                                        .setAllowedOverRoaming(false)
-                                        .setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, fileName)
-                                    val id = manager.enqueue(request)
-                                    downloads.add(0, DownloadItem(id = id, title = fileName))
-                                    urlText = ""
-                                    message = "Загрузка добавлена."
-                                }.onFailure { message = "Не удалось добавить загрузку: ${it.localizedMessage ?: "ошибка"}" }
+                                enqueueDownload(raw)
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
@@ -201,6 +213,25 @@ private fun DownloadHome(sharedLink: String?) {
                     }
                     Text(message, color = Muted, fontSize = 12.sp)
                 }
+            }
+
+            pendingHttpUrl?.let { insecureUrl ->
+                AlertDialog(
+                    onDismissRequest = { pendingHttpUrl = null },
+                    title = { Text("Незащищённое соединение") },
+                    text = {
+                        Text("Ссылка использует HTTP без шифрования. Содержимое и адрес загрузки могут быть видны в сети. Продолжить загрузку?\\n\\n$insecureUrl")
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            pendingHttpUrl = null
+                            enqueueDownload(insecureUrl)
+                        }) { Text("Продолжить") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { pendingHttpUrl = null }) { Text("Отмена") }
+                    }
+                )
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
