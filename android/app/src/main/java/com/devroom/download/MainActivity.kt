@@ -2,6 +2,7 @@ package com.devroom.download
 
 import android.app.DownloadManager
 import android.content.Context
+import android.content.ClipboardManager
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -209,6 +210,26 @@ private fun DownloadHome(sharedLink: String?) {
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri)
                     )
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        TextButton(onClick = {
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            val copied = clipboard.primaryClip?.takeIf { it.itemCount > 0 }
+                                ?.getItemAt(0)?.coerceToText(context)?.toString()?.trim()
+                            if (copied.isNullOrBlank()) {
+                                message = "В буфере обмена нет ссылки."
+                            } else {
+                                val candidate = copied.split(Regex("\\s+")).firstOrNull {
+                                    it.startsWith("https://", true) || it.startsWith("http://", true)
+                                }?.trimEnd('.', ',', ')', ']', '}')
+                                if (candidate.isNullOrBlank()) {
+                                    message = "В буфере обмена не найдена HTTP(S)-ссылка."
+                                } else {
+                                    urlText = candidate
+                                    message = "Ссылка вставлена из буфера обмена."
+                                }
+                            }
+                        }) { Text("Вставить из буфера") }
+                    }
                     Button(
                         onClick = {
                             val raw = urlText.trim()
@@ -252,7 +273,19 @@ private fun DownloadHome(sharedLink: String?) {
                 MetricCard("ЗАВЕРШЕНО", downloads.count { it.status == "Завершено" }.toString(), Modifier.weight(1f))
             }
 
-            Text("Загрузки", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("Загрузки", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                if (downloads.any { it.status == "Завершено" }) {
+                    TextButton(onClick = {
+                        val completedIds = downloads.filter { it.status == "Завершено" }.map { it.id }
+                        if (completedIds.isNotEmpty()) {
+                            manager.remove(*completedIds.toLongArray())
+                            downloads.removeAll { it.id in completedIds }
+                            message = "Завершённые загрузки очищены."
+                        }
+                    }) { Text("Очистить завершённые") }
+                }
+            }
             if (downloads.isEmpty()) {
                 Text("Пока здесь пусто. Добавьте прямую ссылку выше.", color = Muted, fontSize = 13.sp)
             } else {
