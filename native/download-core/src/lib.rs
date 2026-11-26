@@ -1,6 +1,9 @@
 //! DEVROOM DOWNLOAD native core.
 pub mod download;
 
+#[cfg(target_os = "android")]
+mod android_jni;
+
 pub const CORE_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub fn health_check() -> &'static str {
