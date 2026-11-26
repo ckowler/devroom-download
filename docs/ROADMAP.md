@@ -8,7 +8,7 @@
 - [x] Android Sharesheet and HTTP(S) VIEW link intake
 - [x] Rust workspace and native HTTP(S) engine
 - [x] Validated segmented Range requests with If-Range validators and single-stream fallback
-- [x] ARM64 JNI library and native health-check bridge
+- [x] ARM64 JNI library with health-check and native transfer entry points
 - [x] GitHub Actions Android/Rust CI pipeline
 - [x] Upstream GPL provenance review
 - [x] Rust formatting and host unit tests pass in CI
@@ -23,7 +23,7 @@
 - [x] Deterministic local HTTP Range integration tests (valid segments, unsupported ranges, rejected ranges)
 
 ## Android integration
-- [ ] Route actual download execution through Rust JNI
+- [ ] Route actual download execution through Rust JNI worker/service (bridge exists; lifecycle integration remains)
 - [ ] Room persistence and startup reconciliation
 - [ ] User-Initiated Data Transfer integration on supported Android versions
 - [ ] WorkManager scheduling for deferrable work
