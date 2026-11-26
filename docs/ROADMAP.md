@@ -20,7 +20,7 @@
 - [ ] Per-host concurrency and global speed limits
 - [ ] Retry policy, network-change recovery, and pause/resume
 - [ ] Content digest verification and checksum UI
-- [ ] Deterministic local HTTP Range integration test server
+- [x] Deterministic local HTTP Range integration tests (valid segments, unsupported ranges, rejected ranges)
 
 ## Android integration
 - [ ] Route actual download execution through Rust JNI
