@@ -12,7 +12,7 @@
 - [x] GitHub Actions Android/Rust CI pipeline
 - [x] Upstream GPL provenance review
 - [x] Rust formatting, unit/integration tests, and Clippy pass in CI
-- [ ] Confirm Android ARM64 native build and APK artifact in CI
+- [x] Confirm Android ARM64 native build and debug APK artifact in CI
 
 ## Download engine hardening
 - [ ] Validator-aware resume persisted across process death
