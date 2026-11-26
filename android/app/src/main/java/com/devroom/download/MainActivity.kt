@@ -323,6 +323,22 @@ private fun DownloadHome(sharedLink: String?) {
                                 runCatching { context.startActivity(viewIntent) }
                                     .onFailure { message = "Нет приложения для открытия этого типа файла." }
                             }
+                        }, onShare = { id ->
+                            val fileUri = manager.getUriForDownloadedFile(id)
+                            if (fileUri == null) {
+                                message = "Не удалось получить файл для отправки."
+                            } else {
+                                val mime = context.contentResolver.getType(fileUri)
+                                    ?: android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(item.title.substringAfterLast('.', "").lowercase(Locale.ROOT))
+                                    ?: "*/*"
+                                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                    type = mime
+                                    putExtra(Intent.EXTRA_STREAM, fileUri)
+                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                }
+                                runCatching { context.startActivity(Intent.createChooser(shareIntent, "Поделиться файлом")) }
+                                    .onFailure { message = "Не удалось открыть меню отправки файла." }
+                            }
                         }, onRetry = { id ->
                             val previous = downloads.firstOrNull { it.id == id }
                             val retryUrl = previous?.url
@@ -351,6 +367,7 @@ private fun DownloadHome(sharedLink: String?) {
 private fun DownloadCard(
     item: DownloadItem,
     onOpen: (Long) -> Unit,
+    onShare: (Long) -> Unit,
     onRetry: (Long) -> Unit,
     onCancel: (Long) -> Unit
 ) {
@@ -370,7 +387,10 @@ private fun DownloadCard(
                 Text("${formatBytes(item.downloaded)} / ${if (item.total > 0) formatBytes(item.total) else "—"}",
                     color = Muted, fontSize = 11.sp)
                 when (item.status) {
-                    "Завершено" -> Button(onClick = { onOpen(item.id) }) { Text("Открыть") }
+                    "Завершено" -> Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Button(onClick = { onOpen(item.id) }) { Text("Открыть") }
+                        TextButton(onClick = { onShare(item.id) }) { Text("Поделиться") }
+                    }
                     "Ошибка загрузки" -> Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Button(onClick = { onRetry(item.id) }) { Text("Повторить") }
                         TextButton(onClick = { onCancel(item.id) }) { Text("Убрать") }
