@@ -108,6 +108,21 @@ private fun DownloadHome(sharedLink: String?) {
     }
 
     LaunchedEffect(Unit) {
+        manager.query(DownloadManager.Query())?.use { cursor ->
+            val idColumn = cursor.getColumnIndex(DownloadManager.COLUMN_ID)
+            val titleColumn = cursor.getColumnIndex(DownloadManager.COLUMN_TITLE)
+            val statusColumn = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)
+            val bytesColumn = cursor.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)
+            val totalColumn = cursor.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)
+            while (cursor.moveToNext()) {
+                val id = cursor.getLong(idColumn)
+                val title = if (titleColumn >= 0) cursor.getString(titleColumn) ?: "Загрузка" else "Загрузка"
+                val statusCode = if (statusColumn >= 0) cursor.getInt(statusColumn) else -1
+                val bytes = if (bytesColumn >= 0) cursor.getLong(bytesColumn) else 0L
+                val total = if (totalColumn >= 0) cursor.getLong(totalColumn) else -1L
+                downloads.add(DownloadItem(id, title, statusLabel(statusCode), bytes, total))
+            }
+        }
         while (true) {
             downloads.indices.forEach { index ->
                 val current = downloads[index]
@@ -120,15 +135,7 @@ private fun DownloadHome(sharedLink: String?) {
                         val statusCode = if (statusIndex >= 0) cursor.getInt(statusIndex) else -1
                         val downloaded = if (bytesIndex >= 0) cursor.getLong(bytesIndex) else 0L
                         val total = if (totalIndex >= 0) cursor.getLong(totalIndex) else -1L
-                        val status = when (statusCode) {
-                            DownloadManager.STATUS_PENDING -> "Ожидает"
-                            DownloadManager.STATUS_RUNNING -> "Загружается"
-                            DownloadManager.STATUS_PAUSED -> "Приостановлено"
-                            DownloadManager.STATUS_SUCCESSFUL -> "Завершено"
-                            DownloadManager.STATUS_FAILED -> "Ошибка загрузки"
-                            else -> "Проверка состояния"
-                        }
-                        downloads[index] = current.copy(status = status, downloaded = downloaded, total = total)
+                        downloads[index] = current.copy(status = statusLabel(statusCode), downloaded = downloaded, total = total)
                     }
                 }
             }
@@ -202,7 +209,7 @@ private fun DownloadHome(sharedLink: String?) {
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.weight(1f)) {
                     items(downloads, key = { it.id }) { item ->
-                        DownloadCard(item)
+                        DownloadCard(item, onCancel = { id ->\n                            manager.remove(id)\n                            downloads.removeAll { it.id == id }\n                        })
                     }
                 }
             }
@@ -214,7 +221,7 @@ private fun DownloadHome(sharedLink: String?) {
 }
 
 @Composable
-private fun DownloadCard(item: DownloadItem) {
+private fun DownloadCard(item: DownloadItem, onCancel: (Long) -> Unit) {
     Card(colors = CardDefaults.cardColors(containerColor = Panel), shape = RoundedCornerShape(16.dp)) {
         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(item.title, color = Color.White, fontWeight = FontWeight.SemiBold, maxLines = 2)
@@ -226,8 +233,13 @@ private fun DownloadCard(item: DownloadItem) {
                 color = NeonGreen,
                 trackColor = Color(0xFF344137)
             )
-            Text("${formatBytes(item.downloaded)} / ${if (item.total > 0) formatBytes(item.total) else "—"}",
-                color = Muted, fontSize = 11.sp)
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("${formatBytes(item.downloaded)} / ${if (item.total > 0) formatBytes(item.total) else "—"}",
+                    color = Muted, fontSize = 11.sp)
+                if (item.status != "Завершено" && item.status != "Ошибка загрузки") {
+                    Button(onClick = { onCancel(item.id) }) { Text("Отменить") }
+                }
+            }
         }
     }
 }
@@ -248,6 +260,15 @@ private fun safeFileName(input: String): String {
         .replace(Regex("[^A-Za-z0-9._ -]"), "_")
         .trim().take(120)
     return cleaned.ifBlank { "download.bin" }
+}
+
+private fun statusLabel(code: Int): String = when (code) {
+    DownloadManager.STATUS_PENDING -> "Ожидает"
+    DownloadManager.STATUS_RUNNING -> "Загружается"
+    DownloadManager.STATUS_PAUSED -> "Приостановлено"
+    DownloadManager.STATUS_SUCCESSFUL -> "Завершено"
+    DownloadManager.STATUS_FAILED -> "Ошибка загрузки"
+    else -> "Проверка состояния"
 }
 
 private fun formatBytes(bytes: Long): String {
