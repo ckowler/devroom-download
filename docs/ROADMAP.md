@@ -20,7 +20,7 @@
 - [ ] Per-host concurrency and global speed limits
 - [ ] Retry policy, network-change recovery, and pause/resume
 - [ ] Content digest verification and checksum UI
-- [x] Deterministic local HTTP Range integration tests (valid segments, unsupported ranges, rejected ranges)
+- [x] Deterministic local HTTP Range integration tests (valid segments, If-Range validators, unsupported ranges, rejected ranges)
 
 ## Android integration
 - [x] Coroutine adapter that invokes the blocking Rust JNI transfer off the main thread
