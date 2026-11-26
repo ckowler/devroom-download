@@ -36,7 +36,8 @@ fn respond(mut stream: TcpStream, range_enabled: bool) {
             "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nAccept-Ranges: {}\r\nETag: \"fixture-v1\"\r\nConnection: close\r\n\r\n",
             BODY.len(),
             ranges
-        ).unwrap();
+        )
+        .unwrap();
         return;
     }
 
