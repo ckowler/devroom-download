@@ -51,6 +51,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import java.io.File
 import java.util.Locale
 
 private val Graphite = Color(0xFF101411)
@@ -121,7 +122,7 @@ private fun DownloadHome(sharedLink: String?) {
             return
         }
         runCatching {
-            val fileName = safeFileName(parsed.lastPathSegment ?: "download")
+            val fileName = uniqueFileName(context, safeFileName(parsed.lastPathSegment ?: "download"), downloads.map { it.title })
             val request = DownloadManager.Request(parsed)
                 .setTitle(fileName)
                 .setDescription("DEVROOM DOWNLOAD")
@@ -390,6 +391,21 @@ private fun MetricCard(label: String, value: String, modifier: Modifier = Modifi
         Text(label, color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
         Text(value, color = NeonGreen, fontSize = 26.sp, fontWeight = FontWeight.Bold)
     }
+}
+
+private fun uniqueFileName(context: Context, requested: String, queuedNames: List<String>): String {
+    val directory = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
+    val reserved = queuedNames.map { it.lowercase(Locale.ROOT) }.toSet()
+    val dot = requested.lastIndexOf('.').takeIf { it > 0 }
+    val stem = if (dot == null) requested else requested.substring(0, dot)
+    val extension = if (dot == null) "" else requested.substring(dot)
+
+    for (index in 1..9999) {
+        val candidate = if (index == 1) requested else "$stem ($index)$extension"
+        val alreadyExists = directory?.let { File(it, candidate).exists() } ?: false
+        if (!alreadyExists && candidate.lowercase(Locale.ROOT) !in reserved) return candidate
+    }
+    return "$stem-${System.currentTimeMillis()}$extension"
 }
 
 private fun safeFileName(input: String): String {
