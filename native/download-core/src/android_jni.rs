@@ -32,12 +32,8 @@ pub extern "system" fn Java_com_devroom_download_NativeBridge_nativeDownload(
             .get_string(&destination)
             .map_err(|error| error.to_string())?
             .into();
-        let report = crate::download_to_path(
-            &url,
-            destination,
-            connections.max(1) as usize,
-        )
-        .map_err(|error| error.to_string())?;
+        let report = crate::download_to_path(&url, destination, connections.max(1) as usize)
+            .map_err(|error| error.to_string())?;
         Ok(format!(
             "OK|{}|{}|{}",
             report.bytes_written, report.used_parallel_ranges, report.connections
