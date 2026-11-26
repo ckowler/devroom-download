@@ -1,0 +1,23 @@
+# Android / Gradle
+.gradle/
+**/build/
+local.properties
+*.iml
+.idea/
+.DS_Store
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Rust
+target/
+Cargo.lock
+
+# Secrets
+*.jks
+*.keystore
+*.pem
+*.p12
+.env
+.env.*
+!.env.example
