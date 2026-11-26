@@ -1,0 +1,22 @@
+name: Rust Checks
+
+on:
+  pull_request:
+    paths:
+      - "native/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - run: cargo fmt --manifest-path native/Cargo.toml --all -- --check
+      - run: cargo test --manifest-path native/Cargo.toml --workspace
+      - run: cargo clippy --manifest-path native/Cargo.toml --workspace --all-targets -- -D warnings
