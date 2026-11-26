@@ -11,7 +11,7 @@
 - [x] ARM64 JNI library with health-check and native transfer entry points
 - [x] GitHub Actions Android/Rust CI pipeline
 - [x] Upstream GPL provenance review
-- [x] Rust formatting and host unit tests pass in CI
+- [x] Rust formatting, unit/integration tests, and Clippy pass in CI
 - [ ] Confirm Android ARM64 native build and APK artifact in CI
 
 ## Download engine hardening
