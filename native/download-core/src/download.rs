@@ -110,7 +110,7 @@ pub fn download_to_path(
                     size,
                     connections,
                     nonce,
-                    validator
+                    validator,
                 ) {
                     publish_file(&temp_path, destination)?;
                     return Ok(report);
@@ -157,7 +157,8 @@ fn probe_with_client(client: &Client, url: &str) -> Result<Probe, DownloadError>
     let response = client.head(url).send()?;
     if !response.status().is_success() {
         return Err(DownloadError::InvalidResponse(format!(
-            "HEAD returned HTTP {}", response.status()
+            "HEAD returned HTTP {}",
+            response.status()
         )));
     }
     let headers = response.headers();
@@ -211,7 +212,11 @@ fn download_parallel(
 
     for index in 0..count {
         let start = index as u64 * chunk;
-        let end = if index + 1 == count { size - 1 } else { start + chunk - 1 };
+        let end = if index + 1 == count {
+            size - 1
+        } else {
+            start + chunk - 1
+        };
         let segment = sibling_path(temp, &format!(".{nonce}.segment-{index}"));
         jobs.push((start, end, segment));
     }
@@ -225,14 +230,17 @@ fn download_parallel(
         let end = *end;
         let validator = validator.clone();
         handles.push(thread::spawn(move || -> Result<u64, DownloadError> {
-            let mut request = client.get(&url).header(RANGE, format!("bytes={start}-{end}"));
+            let mut request = client
+                .get(&url)
+                .header(RANGE, format!("bytes={start}-{end}"));
             if let Some(value) = validator {
                 request = request.header(IF_RANGE, value);
             }
             let mut response = request.send()?;
             if response.status() != StatusCode::PARTIAL_CONTENT {
                 return Err(DownloadError::InvalidResponse(format!(
-                    "range {start}-{end} returned HTTP {}", response.status()
+                    "range {start}-{end} returned HTTP {}",
+                    response.status()
                 )));
             }
             let expected = format!("bytes {start}-{end}/{size}");
