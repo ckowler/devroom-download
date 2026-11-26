@@ -61,8 +61,11 @@ data class DownloadItem(
 )
 
 class MainActivity : ComponentActivity() {
+    private var sharedLink by mutableStateOf<String?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        sharedLink = extractSharedLink(intent)
         setContent {
             MaterialTheme(colorScheme = darkColorScheme(
                 primary = NeonGreen, background = Graphite, surface = Panel,
@@ -70,15 +73,39 @@ class MainActivity : ComponentActivity() {
             )) { DownloadHome(sharedLink = sharedLink) }
         }
     }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        sharedLink = extractSharedLink(intent)
+    }
+
+    private fun extractSharedLink(intent: Intent?): String? {
+        val candidate = when (intent?.action) {
+            Intent.ACTION_VIEW -> intent.dataString
+            Intent.ACTION_SEND -> intent.getStringExtra(Intent.EXTRA_TEXT)
+            else -> null
+        } ?: return null
+        return candidate.split(Regex("\\s+")).firstOrNull {
+            it.startsWith("https://", true) || it.startsWith("http://", true)
+        }?.trimEnd('.', ',', ')', ']', '}')
+    }
 }
 
 @Composable
-private fun DownloadHome() {
+private fun DownloadHome(sharedLink: String?) {
     val context = LocalContext.current
     val manager = remember { context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager }
     var urlText by remember { mutableStateOf("") }
     var message by remember { mutableStateOf("Вставьте прямую ссылку на файл.") }
     val downloads = remember { mutableStateListOf<DownloadItem>() }
+
+    LaunchedEffect(sharedLink) {
+        if (!sharedLink.isNullOrBlank()) {
+            urlText = sharedLink
+            message = "Ссылка получена из другого приложения. Проверьте её и начните загрузку."
+        }
+    }
 
     LaunchedEffect(Unit) {
         while (true) {
