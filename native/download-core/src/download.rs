@@ -50,14 +50,17 @@ pub fn probe(url: &str) -> Result<Probe, DownloadError> {
     let response = client.head(url).send()?;
     if !response.status().is_success() {
         return Err(DownloadError::InvalidResponse(format!(
-            "HEAD returned HTTP {}", response.status()
+            "HEAD returned HTTP {}",
+            response.status()
         )));
     }
     let headers = response.headers();
-    let size = headers.get(CONTENT_LENGTH)
+    let size = headers
+        .get(CONTENT_LENGTH)
         .and_then(|v| v.to_str().ok())
         .and_then(|v| v.parse::<u64>().ok());
-    let supports_ranges = headers.get(ACCEPT_RANGES)
+    let supports_ranges = headers
+        .get(ACCEPT_RANGES)
         .and_then(|v| v.to_str().ok())
         .map(|v| v.eq_ignore_ascii_case("bytes"))
         .unwrap_or(false);
@@ -85,8 +88,10 @@ pub fn download_to_path(
     let client = Arc::new(build_client()?);
     let probe_result = probe_with_client(&client, url).ok();
     let connections = requested_connections.clamp(1, 8);
-    let nonce = SystemTime::now().duration_since(UNIX_EPOCH)
-        .unwrap_or_default().as_nanos();
+    let nonce = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos();
     let temp_path = sibling_path(destination, &format!(".{nonce}.download-part"));
 
     if let Some(info) = probe_result {
@@ -99,7 +104,13 @@ pub fn download_to_path(
         if info.supports_ranges && connections > 1 && validator.is_some() {
             if let Some(size) = info.size.filter(|s| *s > 0) {
                 if let Ok(report) = download_parallel(
-                    Arc::clone(&client), url, &temp_path, size, connections, nonce, validator
+                    Arc::clone(&client),
+                    url,
+                    &temp_path,
+                    size,
+                    connections,
+                    nonce,
+                    validator
                 ) {
                     publish_file(&temp_path, destination)?;
                     return Ok(report);
@@ -135,8 +146,7 @@ fn build_client() -> Result<Client, DownloadError> {
 }
 
 fn validate_url(url: &str) -> Result<(), DownloadError> {
-    let parsed = reqwest::Url::parse(url)
-        .map_err(|_| DownloadError::InvalidUrl)?;
+    let parsed = reqwest::Url::parse(url).map_err(|_| DownloadError::InvalidUrl)?;
     if parsed.scheme() != "http" && parsed.scheme() != "https" {
         return Err(DownloadError::InvalidUrl);
     }
@@ -152,17 +162,28 @@ fn probe_with_client(client: &Client, url: &str) -> Result<Probe, DownloadError>
     }
     let headers = response.headers();
     Ok(Probe {
-        size: headers.get(CONTENT_LENGTH).and_then(|v| v.to_str().ok())
+        size: headers
+            .get(CONTENT_LENGTH)
+            .and_then(|v| v.to_str().ok())
             .and_then(|v| v.parse().ok()),
-        supports_ranges: headers.get(ACCEPT_RANGES).and_then(|v| v.to_str().ok())
-            .map(|v| v.eq_ignore_ascii_case("bytes")).unwrap_or(false),
+        supports_ranges: headers
+            .get(ACCEPT_RANGES)
+            .and_then(|v| v.to_str().ok())
+            .map(|v| v.eq_ignore_ascii_case("bytes"))
+            .unwrap_or(false),
         etag: header_string(headers, ETAG),
         last_modified: header_string(headers, LAST_MODIFIED),
     })
 }
 
-fn header_string(headers: &reqwest::header::HeaderMap, name: reqwest::header::HeaderName) -> Option<String> {
-    headers.get(name).and_then(|v| v.to_str().ok()).map(str::to_owned)
+fn header_string(
+    headers: &reqwest::header::HeaderMap,
+    name: reqwest::header::HeaderName,
+) -> Option<String> {
+    headers
+        .get(name)
+        .and_then(|v| v.to_str().ok())
+        .map(str::to_owned)
 }
 
 fn download_single(client: &Client, url: &str, temp: &Path) -> Result<u64, DownloadError> {
@@ -215,19 +236,23 @@ fn download_parallel(
                 )));
             }
             let expected = format!("bytes {start}-{end}/{size}");
-            let actual = response.headers().get(CONTENT_RANGE)
-                .and_then(|v| v.to_str().ok()).unwrap_or("");
+            let actual = response
+                .headers()
+                .get(CONTENT_RANGE)
+                .and_then(|v| v.to_str().ok())
+                .unwrap_or("");
             if actual != expected {
-                return Err(DownloadError::InvalidResponse(
-                    format!("unexpected Content-Range: {actual}")
-                ));
+                return Err(DownloadError::InvalidResponse(format!(
+                    "unexpected Content-Range: {actual}"
+                )));
             }
             let mut file = File::create(&segment)?;
             let written = io::copy(&mut response, &mut file)?;
             file.sync_all()?;
             if written != end - start + 1 {
                 return Err(DownloadError::InvalidResponse(format!(
-                    "range {start}-{end} expected {} bytes, received {written}", end-start+1
+                    "range {start}-{end} expected {} bytes, received {written}",
+                    end - start + 1
                 )));
             }
             Ok(written)
@@ -247,7 +272,9 @@ fn download_parallel(
         for (_, _, path) in &jobs {
             let _ = fs::remove_file(path);
         }
-        return Err(DownloadError::InvalidResponse("one or more range workers failed".into()));
+        return Err(DownloadError::InvalidResponse(
+            "one or more range workers failed".into(),
+        ));
     }
 
     let assembly = (|| -> Result<(), DownloadError> {
