@@ -95,6 +95,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun DownloadHome(sharedLink: String?) {
     val context = LocalContext.current
+    val nativeStatus = remember { NativeBridge.nativeHealthCheck() }
     val manager = remember { context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager }
     var urlText by remember { mutableStateOf("") }
     var message by remember { mutableStateOf("Вставьте прямую ссылку на файл.") }
@@ -152,6 +153,7 @@ private fun DownloadHome(sharedLink: String?) {
                 Text("DEVROOM", color = NeonGreen, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 3.sp)
                 Text("DOWNLOAD", color = Color.White, fontSize = 30.sp, fontWeight = FontWeight.ExtraBold)
                 Text("Ваш центр загрузок", color = Muted, fontSize = 14.sp)
+                Text("CORE • $nativeStatus", color = NeonGreen, fontSize = 10.sp)
             }
 
             Card(colors = CardDefaults.cardColors(containerColor = Panel), shape = RoundedCornerShape(18.dp)) {
