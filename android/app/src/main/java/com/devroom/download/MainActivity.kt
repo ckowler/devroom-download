@@ -209,7 +209,10 @@ private fun DownloadHome(sharedLink: String?) {
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.weight(1f)) {
                     items(downloads, key = { it.id }) { item ->
-                        DownloadCard(item, onCancel = { id ->\n                            manager.remove(id)\n                            downloads.removeAll { it.id == id }\n                        })
+                        DownloadCard(item, onCancel = { id ->
+                            manager.remove(id)
+                            downloads.removeAll { it.id == id }
+                        })
                     }
                 }
             }
